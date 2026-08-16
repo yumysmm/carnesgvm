@@ -1,2 +1,0 @@
-# carnesgvm
-Carnes Cali
