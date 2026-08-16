@@ -63,19 +63,44 @@ git push -u origin main
 
 (Crea antes el repositorio vacío en https://github.com/new)
 
-## 5. Publicar la tienda (para que el cliente pueda "instalarla")
+## 5. Publicar el sitio en GitHub Pages
 
-Recomendado: **Cloudflare Pages** o **Vercel** (ambos gratis y se conectan
-directo a GitHub):
+Este proyecto ya viene listo para publicarse en `https://TU-USUARIO.github.io/carnesgvm/`
+usando GitHub Actions (se recompila solo cada vez que subas cambios a `main`).
+
+1. En tu repositorio de GitHub, ve a **Settings → Secrets and variables → Actions**
+   y crea dos "Repository secrets":
+   - `VITE_SUPABASE_URL` → tu Project URL de Supabase
+   - `VITE_SUPABASE_ANON_KEY` → tu anon public key de Supabase
+2. Ve a **Settings → Pages** y en "Build and deployment / Source" elige
+   **GitHub Actions**.
+3. Sube el código (`git push`, ver paso anterior). Esto dispara automáticamente
+   el workflow `.github/workflows/deploy.yml`, que compila el proyecto y lo
+   publica.
+4. Ve a la pestaña **Actions** del repo para ver el progreso. Cuando termine
+   en verde, tu sitio queda en `https://TU-USUARIO.github.io/NOMBRE-DEL-REPO/`.
+
+> Importante: el archivo `vite.config.js` tiene `base: "/carnesgvm/"`. Si tu
+> repositorio se llama distinto a `carnesgvm`, cambia esa línea (y también
+> `start_url` y `scope` un poco más abajo en el mismo archivo) para que
+> coincida exactamente con el nombre de tu repositorio, o el sitio se verá
+> roto (imágenes/estilos no cargan).
+
+### Alternativa: Cloudflare Pages o Vercel
+
+Si prefieres no usar GitHub Actions, también puedes desplegar en Cloudflare
+Pages o Vercel conectando el mismo repositorio:
 
 1. Entra a https://pages.cloudflare.com (o https://vercel.com) e inicia
    sesión con tu cuenta de GitHub.
-2. "Create project" → elige el repo `carnexpress-lite`.
+2. "Create project" → elige el repo.
 3. Framework preset: **Vite**. Build command: `npm run build`. Output
    directory: `dist`.
 4. En "Environment variables" agrega `VITE_SUPABASE_URL` y
-   `VITE_SUPABASE_ANON_KEY` con los mismos valores de tu `.env`.
-5. Deploy. Te da una URL pública (ej. `carnexpress-lite.pages.dev`).
+   `VITE_SUPABASE_ANON_KEY`.
+5. Deploy. Te da una URL propia (ej. `carnesgvm.pages.dev`). En este caso
+   puedes volver a poner `base: "/"` en `vite.config.js` porque no vive en
+   una subcarpeta.
 
 ## 6. "Descargar" la app en el celular (PWA)
 
