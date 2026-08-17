@@ -62,7 +62,7 @@ img{max-width:100%;}
 /* ---------- hero / banners ---------- */
 .hero{
   position:relative; overflow:hidden; background:var(--green-dark);
-  max-width:1180px; margin:16px auto 0; aspect-ratio:1600/700; border-radius:16px;
+  max-width:590px; margin:16px auto 0; aspect-ratio:1600/700; border-radius:16px;
   box-shadow:var(--shadow);
 }
 .hero-track{display:flex; transition:transform .5s ease; height:100%;}
