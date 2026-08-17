@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { money } from "./money";
 import Banners from "./components/Banners.jsx";
 import Recipes from "./components/Recipes.jsx";
+import Footer from "./components/Footer.jsx";
 
 function Field({ label, children }) {
   return (
@@ -13,15 +14,15 @@ function Field({ label, children }) {
   );
 }
 
-function Overlay({ children, onClose }) {
+function Overlay({ children, onClose, side }) {
   return (
     <div
-      className="overlay"
+      className={"overlay" + (side ? "" : " bottom")}
       onClick={(e) => {
         if (e.target.classList.contains("overlay")) onClose();
       }}
     >
-      <div className="sheet">{children}</div>
+      <div className={side ? "drawer" : "sheet"}>{children}</div>
     </div>
   );
 }
@@ -38,6 +39,7 @@ export default function App() {
   const [confirmChecked, setConfirmChecked] = useState(false);
   const [form, setForm] = useState({ nombre: "", celular: "", direccion: "", barrio: "" });
   const [errorMsg, setErrorMsg] = useState("");
+  const catalogRef = useRef(null);
 
   useEffect(() => {
     (async () => {
@@ -60,7 +62,7 @@ export default function App() {
       } catch (err) {
         console.error(err);
         setErrorMsg(
-          "No pudimos cargar el catálogo. Revisa que las variables de Supabase (.env) estén configuradas y que hayas corrido supabase/schema.sql."
+          "No pudimos cargar el catálogo. Revisa que las variables de Supabase (Secrets) estén configuradas y que hayas corrido supabase/schema.sql."
         );
       } finally {
         setLoading(false);
@@ -132,6 +134,10 @@ export default function App() {
     setConfirmChecked(false);
   };
 
+  const scrollToCatalog = () => {
+    catalogRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   if (loading) {
     return <div style={{ padding: "60px 20px", textAlign: "center", color: "var(--muted)" }}>Cargando…</div>;
   }
@@ -146,66 +152,105 @@ export default function App() {
 
   return (
     <>
-      <div className="topbar">
-        <div className="topbrand">
-          <div className="stamp">CX</div>
-          <span>Carnexpress Lite</span>
+      <div className="nav">
+        <div className="nav-inner">
+          <div className="nav-brand">
+            <div className="stamp">CX</div>
+            <span>Carnexpress Lite</span>
+          </div>
+          <div className="nav-links">
+            <button className="nav-link" onClick={scrollToCatalog}>
+              Catálogo
+            </button>
+            {categories
+              .filter((c) => c !== "Todos")
+              .map((c) => (
+                <button
+                  key={c}
+                  className="nav-link"
+                  onClick={() => {
+                    setFilter(c);
+                    scrollToCatalog();
+                  }}
+                >
+                  {c}
+                </button>
+              ))}
+          </div>
+          <button className="nav-cart" onClick={() => setView("cart")}>
+            🛒 {totalQty > 0 && <span className="badge">{totalQty}</span>}
+          </button>
         </div>
-      </div>
-
-      <div className="intro">
-        <h1 className="disp">{settings.intro_title || "Carne fresca a domicilio"}</h1>
-        <p>{settings.intro_subtitle || "Elige tus productos y confirma tu pedido por WhatsApp."}</p>
       </div>
 
       <Banners banners={banners} />
+
+      <div className="intro-strip">
+        <h1 className="disp">{settings.intro_title || "Carne fresca a domicilio"}</h1>
+        <p>{settings.intro_subtitle || "Elige tus productos y confirma tu pedido por WhatsApp."}</p>
+        <div className="trust-row">
+          <div className="trust-chip">✓ Empacado al vacío</div>
+          <div className="trust-chip">✓ Entrega el mismo día</div>
+          <div className="trust-chip">✓ Frescura garantizada</div>
+        </div>
+      </div>
+
       <Recipes recipes={recipes} />
 
-      <div className="section-title" style={{ padding: "0 16px" }}>
-        🥩 Catálogo
-      </div>
-      <div className="filters">
-        {categories.map((c) => (
-          <button key={c} className={"chip" + (filter === c ? " active" : "")} onClick={() => setFilter(c)}>
-            {c}
-          </button>
-        ))}
-      </div>
+      <div className="section" ref={catalogRef}>
+        <div className="section-head">
+          <div>
+            <h2 className="section-title disp">🥩 Catálogo</h2>
+            <p className="section-sub">Selecciona tus productos favoritos</p>
+          </div>
+        </div>
+        <div className="filters">
+          {categories.map((c) => (
+            <button key={c} className={"chip" + (filter === c ? " active" : "")} onClick={() => setFilter(c)}>
+              {c}
+            </button>
+          ))}
+        </div>
 
-      {visibleProducts.length === 0 ? (
-        <div className="empty">No hay productos en esta categoría todavía.</div>
-      ) : (
-        <div className="grid">
-          {visibleProducts.map((p) => {
-            const qty = cart[p.id] || 0;
-            return (
-              <div className="card" key={p.id}>
-                <div className="card-img" style={p.image_url ? { backgroundImage: `url(${p.image_url})` } : {}}>
-                  {!p.image_url && "🍽️"}
-                </div>
-                <div className="card-body">
-                  <div className="card-name">{p.name}</div>
-                  <div className="card-desc">{p.description}</div>
-                  <div className="card-foot">
-                    <span className="price disp">{money(p.price)}</span>
-                    {qty === 0 ? (
-                      <button className="addbtn" onClick={() => setQty(p.id, 1)}>
-                        +
-                      </button>
-                    ) : (
-                      <div className="qtybox">
-                        <button onClick={() => setQty(p.id, -1)}>–</button>
-                        <span>{qty}</span>
-                        <button onClick={() => setQty(p.id, 1)}>+</button>
-                      </div>
-                    )}
+        {visibleProducts.length === 0 ? (
+          <div className="empty">No hay productos en esta categoría todavía.</div>
+        ) : (
+          <div className="grid">
+            {visibleProducts.map((p) => {
+              const qty = cart[p.id] || 0;
+              return (
+                <div className="card" key={p.id}>
+                  <div className="card-img" style={p.image_url ? { backgroundImage: `url(${p.image_url})` } : {}}>
+                    {!p.image_url && "🍽️"}
+                    <span className="fresh">Fresco</span>
+                  </div>
+                  <div className="card-body">
+                    <span className="card-cat">{p.category || "Otros"}</span>
+                    <div className="card-name">{p.name}</div>
+                    <div className="card-desc">{p.description}</div>
+                    <div className="card-foot">
+                      <span className="price disp">{money(p.price)}</span>
+                      {qty === 0 ? (
+                        <button className="addbtn" onClick={() => setQty(p.id, 1)}>
+                          +
+                        </button>
+                      ) : (
+                        <div className="qtybox">
+                          <button onClick={() => setQty(p.id, -1)}>–</button>
+                          <span>{qty}</span>
+                          <button onClick={() => setQty(p.id, 1)}>+</button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <Footer settings={settings} />
 
       {totalQty > 0 && !view && (
         <div className="floatbar" onClick={() => setView("cart")}>
@@ -220,27 +265,31 @@ export default function App() {
       )}
 
       {view === "cart" && (
-        <Overlay onClose={closeAll}>
-          <div className="sheet-head">
+        <Overlay onClose={closeAll} side>
+          <div className="drawer-head">
             <h2 className="disp">Tu pedido</h2>
             <button className="closebtn" onClick={closeAll}>
               ×
             </button>
           </div>
-          {cartItems.map((i) => (
-            <div className="cartline" key={i.id}>
-              <div className="thumb" style={i.image_url ? { backgroundImage: `url(${i.image_url})` } : {}}></div>
-              <div className="info">
-                <b>{i.name}</b>
-                <span>{money(i.price)} c/u</span>
+          {cartItems.length === 0 ? (
+            <p style={{ color: "var(--muted)", fontSize: 13.5 }}>Todavía no has agregado productos.</p>
+          ) : (
+            cartItems.map((i) => (
+              <div className="cartline" key={i.id}>
+                <div className="thumb" style={i.image_url ? { backgroundImage: `url(${i.image_url})` } : {}}></div>
+                <div className="info">
+                  <b>{i.name}</b>
+                  <span>{money(i.price)} c/u</span>
+                </div>
+                <div className="qtybox">
+                  <button onClick={() => setQty(i.id, -1)}>–</button>
+                  <span>{i.qty}</span>
+                  <button onClick={() => setQty(i.id, 1)}>+</button>
+                </div>
               </div>
-              <div className="qtybox">
-                <button onClick={() => setQty(i.id, -1)}>–</button>
-                <span>{i.qty}</span>
-                <button onClick={() => setQty(i.id, 1)}>+</button>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
           <div className="total-row grand">
             <span>Total</span>
             <span>{money(subtotal)}</span>
