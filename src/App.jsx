@@ -1,0 +1,325 @@
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "./supabaseClient";
+import { money } from "./money";
+import Banners from "./components/Banners.jsx";
+import Recipes from "./components/Recipes.jsx";
+
+function Field({ label, children }) {
+  return (
+    <div className="field">
+      <label>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function Overlay({ children, onClose }) {
+  return (
+    <div
+      className="overlay"
+      onClick={(e) => {
+        if (e.target.classList.contains("overlay")) onClose();
+      }}
+    >
+      <div className="sheet">{children}</div>
+    </div>
+  );
+}
+
+export default function App() {
+  const [loading, setLoading] = useState(true);
+  const [banners, setBanners] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [recipes, setRecipes] = useState([]);
+  const [settings, setSettings] = useState({});
+  const [filter, setFilter] = useState("Todos");
+  const [cart, setCart] = useState({});
+  const [view, setView] = useState(null); // null | 'cart' | 'form' | 'confirm'
+  const [confirmChecked, setConfirmChecked] = useState(false);
+  const [form, setForm] = useState({ nombre: "", celular: "", direccion: "", barrio: "" });
+  const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [b, p, r, s] = await Promise.all([
+          supabase.from("banners").select("*").eq("active", true).order("sort_order"),
+          supabase.from("products").select("*").eq("active", true).order("sort_order"),
+          supabase.from("recipes").select("*").eq("active", true).order("sort_order"),
+          supabase.from("settings").select("*"),
+        ]);
+        if (b.error || p.error || r.error || s.error) {
+          throw b.error || p.error || r.error || s.error;
+        }
+        setBanners(b.data || []);
+        setProducts(p.data || []);
+        setRecipes(r.data || []);
+        const settingsObj = {};
+        (s.data || []).forEach((row) => (settingsObj[row.key] = row.value));
+        setSettings(settingsObj);
+      } catch (err) {
+        console.error(err);
+        setErrorMsg(
+          "No pudimos cargar el catálogo. Revisa que las variables de Supabase (.env) estén configuradas y que hayas corrido supabase/schema.sql."
+        );
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const categories = useMemo(() => {
+    const set = new Set(products.map((p) => p.category || "Otros"));
+    return ["Todos", ...Array.from(set)];
+  }, [products]);
+
+  const visibleProducts = useMemo(
+    () => products.filter((p) => filter === "Todos" || (p.category || "Otros") === filter),
+    [products, filter]
+  );
+
+  const cartItems = useMemo(() => {
+    return Object.entries(cart)
+      .filter(([, q]) => q > 0)
+      .map(([id, q]) => {
+        const p = products.find((pr) => pr.id === id);
+        return p ? { ...p, qty: q } : null;
+      })
+      .filter(Boolean);
+  }, [cart, products]);
+
+  const subtotal = cartItems.reduce((s, i) => s + Number(i.price) * i.qty, 0);
+  const totalQty = cartItems.reduce((s, i) => s + i.qty, 0);
+
+  const setQty = (id, delta) => {
+    setCart((prev) => {
+      const next = { ...prev };
+      const cur = next[id] || 0;
+      const nv = Math.max(0, cur + delta);
+      if (nv === 0) delete next[id];
+      else next[id] = nv;
+      return next;
+    });
+  };
+
+  const updateForm = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
+  const requiredOk = form.nombre && form.celular && form.direccion;
+
+  const buildMessage = () => {
+    const lines = [];
+    lines.push("🛒 *Nuevo pedido - Carnexpress Lite*");
+    lines.push("");
+    cartItems.forEach((i) => lines.push(`• ${i.qty} x ${i.name} — ${money(i.price * i.qty)}`));
+    lines.push("");
+    lines.push(`*Total: ${money(subtotal)}*`);
+    lines.push("");
+    lines.push("*Datos del cliente:*");
+    lines.push(`Nombre: ${form.nombre}`);
+    lines.push(`Celular: ${form.celular}`);
+    lines.push(`Dirección: ${form.direccion}`);
+    lines.push(`Barrio: ${form.barrio}`);
+    return lines.join("\n");
+  };
+
+  const sendWhatsapp = () => {
+    const num = (settings.whatsapp_cali || "").replace(/\D/g, "");
+    const msg = encodeURIComponent(buildMessage());
+    window.open(`https://wa.me/${num}?text=${msg}`, "_blank");
+  };
+
+  const closeAll = () => {
+    setView(null);
+    setConfirmChecked(false);
+  };
+
+  if (loading) {
+    return <div style={{ padding: "60px 20px", textAlign: "center", color: "var(--muted)" }}>Cargando…</div>;
+  }
+
+  if (errorMsg) {
+    return (
+      <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--muted)" }}>
+        <p>{errorMsg}</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="topbar">
+        <div className="topbrand">
+          <div className="stamp">CX</div>
+          <span>Carnexpress Lite</span>
+        </div>
+      </div>
+
+      <div className="intro">
+        <h1 className="disp">{settings.intro_title || "Carne fresca a domicilio"}</h1>
+        <p>{settings.intro_subtitle || "Elige tus productos y confirma tu pedido por WhatsApp."}</p>
+      </div>
+
+      <Banners banners={banners} />
+      <Recipes recipes={recipes} />
+
+      <div className="section-title" style={{ padding: "0 16px" }}>
+        🥩 Catálogo
+      </div>
+      <div className="filters">
+        {categories.map((c) => (
+          <button key={c} className={"chip" + (filter === c ? " active" : "")} onClick={() => setFilter(c)}>
+            {c}
+          </button>
+        ))}
+      </div>
+
+      {visibleProducts.length === 0 ? (
+        <div className="empty">No hay productos en esta categoría todavía.</div>
+      ) : (
+        <div className="grid">
+          {visibleProducts.map((p) => {
+            const qty = cart[p.id] || 0;
+            return (
+              <div className="card" key={p.id}>
+                <div className="card-img" style={p.image_url ? { backgroundImage: `url(${p.image_url})` } : {}}>
+                  {!p.image_url && "🍽️"}
+                </div>
+                <div className="card-body">
+                  <div className="card-name">{p.name}</div>
+                  <div className="card-desc">{p.description}</div>
+                  <div className="card-foot">
+                    <span className="price disp">{money(p.price)}</span>
+                    {qty === 0 ? (
+                      <button className="addbtn" onClick={() => setQty(p.id, 1)}>
+                        +
+                      </button>
+                    ) : (
+                      <div className="qtybox">
+                        <button onClick={() => setQty(p.id, -1)}>–</button>
+                        <span>{qty}</span>
+                        <button onClick={() => setQty(p.id, 1)}>+</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {totalQty > 0 && !view && (
+        <div className="floatbar" onClick={() => setView("cart")}>
+          <div>
+            <strong className="disp">{money(subtotal)}</strong>
+            <small>
+              {totalQty} producto{totalQty > 1 ? "s" : ""}
+            </small>
+          </div>
+          <div>Ver pedido →</div>
+        </div>
+      )}
+
+      {view === "cart" && (
+        <Overlay onClose={closeAll}>
+          <div className="sheet-head">
+            <h2 className="disp">Tu pedido</h2>
+            <button className="closebtn" onClick={closeAll}>
+              ×
+            </button>
+          </div>
+          {cartItems.map((i) => (
+            <div className="cartline" key={i.id}>
+              <div className="thumb" style={i.image_url ? { backgroundImage: `url(${i.image_url})` } : {}}></div>
+              <div className="info">
+                <b>{i.name}</b>
+                <span>{money(i.price)} c/u</span>
+              </div>
+              <div className="qtybox">
+                <button onClick={() => setQty(i.id, -1)}>–</button>
+                <span>{i.qty}</span>
+                <button onClick={() => setQty(i.id, 1)}>+</button>
+              </div>
+            </div>
+          ))}
+          <div className="total-row grand">
+            <span>Total</span>
+            <span>{money(subtotal)}</span>
+          </div>
+          <button className="btn btn-primary" disabled={cartItems.length === 0} onClick={() => setView("form")}>
+            Continuar con mis datos
+          </button>
+          <button className="btn btn-secondary" onClick={closeAll}>
+            Seguir comprando
+          </button>
+        </Overlay>
+      )}
+
+      {view === "form" && (
+        <Overlay onClose={() => setView("cart")}>
+          <div className="sheet-head">
+            <h2 className="disp">Tus datos</h2>
+            <button className="closebtn" onClick={closeAll}>
+              ×
+            </button>
+          </div>
+          <Field label="Nombre *">
+            <input value={form.nombre} onChange={(e) => updateForm("nombre", e.target.value)} />
+          </Field>
+          <Field label="Celular *">
+            <input value={form.celular} onChange={(e) => updateForm("celular", e.target.value)} />
+          </Field>
+          <Field label="Dirección *">
+            <input value={form.direccion} onChange={(e) => updateForm("direccion", e.target.value)} />
+          </Field>
+          <Field label="Barrio">
+            <input value={form.barrio} onChange={(e) => updateForm("barrio", e.target.value)} />
+          </Field>
+          <div className="total-row grand">
+            <span>Total</span>
+            <span>{money(subtotal)}</span>
+          </div>
+          <button className="btn btn-primary" disabled={!requiredOk} onClick={() => setView("confirm")}>
+            Revisar pedido
+          </button>
+          <button className="btn btn-secondary" onClick={() => setView("cart")}>
+            ← Corregir
+          </button>
+        </Overlay>
+      )}
+
+      {view === "confirm" && (
+        <Overlay onClose={() => setView("form")}>
+          <div className="sheet-head">
+            <h2 className="disp">Confirmar pedido</h2>
+            <button className="closebtn" onClick={closeAll}>
+              ×
+            </button>
+          </div>
+          <pre
+            style={{
+              whiteSpace: "pre-wrap",
+              fontSize: 12.5,
+              background: "#fff",
+              border: "1px solid var(--line)",
+              borderRadius: 10,
+              padding: 12,
+              lineHeight: 1.6,
+            }}
+          >
+            {buildMessage()}
+          </pre>
+          <label className="check-row">
+            <input type="checkbox" checked={confirmChecked} onChange={(e) => setConfirmChecked(e.target.checked)} />
+            <span>Confirmo que los datos del pedido son correctos.</span>
+          </label>
+          <button className="btn btn-wa" disabled={!confirmChecked} onClick={sendWhatsapp}>
+            📲 Confirmar y enviar por WhatsApp
+          </button>
+          <button className="btn btn-secondary" onClick={() => setView("form")}>
+            ← Corregir
+          </button>
+        </Overlay>
+      )}
+    </>
+  );
+}
