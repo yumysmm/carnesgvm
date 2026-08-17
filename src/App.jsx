@@ -109,7 +109,7 @@ export default function App() {
 
   const buildMessage = () => {
     const lines = [];
-    lines.push("🛒 *Nuevo pedido - Carnexpress Lite*");
+    lines.push("🛒 *Nuevo pedido - Cali Carnes*");
     lines.push("");
     cartItems.forEach((i) => lines.push(`• ${i.qty} x ${i.name} — ${money(i.price * i.qty)}`));
     lines.push("");
@@ -155,8 +155,8 @@ export default function App() {
       <div className="nav">
         <div className="nav-inner">
           <div className="nav-brand">
-            <div className="stamp">CX</div>
-            <span>Carnexpress Lite</span>
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Cali Carnes" className="brand-logo" />
+            <span>Cali Carnes</span>
           </div>
           <div className="nav-links">
             <button className="nav-link" onClick={scrollToCatalog}>
