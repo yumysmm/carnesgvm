@@ -39,6 +39,7 @@ export default function App() {
   const [confirmChecked, setConfirmChecked] = useState(false);
   const [form, setForm] = useState({ nombre: "", celular: "", direccion: "", barrio: "" });
   const [errorMsg, setErrorMsg] = useState("");
+  const [zoomProduct, setZoomProduct] = useState(null);
   const catalogRef = useRef(null);
 
   useEffect(() => {
@@ -146,6 +147,21 @@ export default function App() {
     catalogRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const siteUrl = typeof window !== "undefined" ? window.location.origin + import.meta.env.BASE_URL : "";
+
+  const shareProduct = (product, network) => {
+    const text = `${product.name} — ${money(product.price)} en Cali Carnes 🥩`;
+    if (network === "whatsapp") {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + siteUrl)}`, "_blank");
+    } else if (network === "facebook") {
+      window.open(
+        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(siteUrl)}&quote=${encodeURIComponent(text)}`,
+        "_blank",
+        "width=600,height=500"
+      );
+    }
+  };
+
   if (loading) {
     return <div style={{ padding: "60px 20px", textAlign: "center", color: "var(--muted)" }}>Cargando…</div>;
   }
@@ -228,9 +244,14 @@ export default function App() {
               const qty = cart[p.id] || 0;
               return (
                 <div className="card" key={p.id}>
-                  <div className="card-img" style={p.image_url ? { backgroundImage: `url(${p.image_url})` } : {}}>
+                  <div
+                    className="card-img zoomable"
+                    style={p.image_url ? { backgroundImage: `url(${p.image_url})` } : {}}
+                    onClick={() => p.image_url && setZoomProduct(p)}
+                  >
                     {!p.image_url && "🍽️"}
                     <span className="fresh">Fresco</span>
+                    {p.image_url && <span className="zoom-hint">🔍</span>}
                   </div>
                   <div className="card-body">
                     <span className="card-cat">{p.category || "Otros"}</span>
@@ -371,6 +392,41 @@ export default function App() {
             ← Corregir
           </button>
         </Overlay>
+      )}
+
+      {zoomProduct && (
+        <div className="zoom-overlay" onClick={(e) => e.target === e.currentTarget && setZoomProduct(null)}>
+          <button className="zoom-close" onClick={() => setZoomProduct(null)} aria-label="Cerrar">
+            ×
+          </button>
+          <div className="zoom-box">
+            <img src={zoomProduct.image_url} alt={zoomProduct.name} />
+            <div className="zoom-info">
+              <div>
+                <b className="disp">{zoomProduct.name}</b>
+                <span className="price disp">{money(zoomProduct.price)}</span>
+              </div>
+              <div className="zoom-share">
+                <span>Compartir:</span>
+                <button className="share-btn wa" onClick={() => shareProduct(zoomProduct, "whatsapp")} aria-label="Compartir por WhatsApp">
+                  🟢 WhatsApp
+                </button>
+                <button className="share-btn fb" onClick={() => shareProduct(zoomProduct, "facebook")} aria-label="Compartir en Facebook">
+                  🔵 Facebook
+                </button>
+              </div>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  setQty(zoomProduct.id, 1);
+                  setZoomProduct(null);
+                }}
+              >
+                🛒 Agregar al carrito
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

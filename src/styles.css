@@ -151,7 +151,40 @@ img{max-width:100%;}
 .qtybox button{background:none; border:none; width:25px; height:25px; font-size:16px; color:var(--green-dark); cursor:pointer; flex-shrink:0;}
 .qtybox span{font-size:13px; font-weight:700; min-width:16px; text-align:center;}
 
+.card-img.zoomable{cursor:zoom-in;}
+.zoom-hint{
+  position:absolute; bottom:8px; right:8px; background:rgba(15,20,12,.55); color:#fff; font-size:13px;
+  width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  opacity:0; transition:opacity .15s ease;
+}
+.card:hover .zoom-hint{opacity:1;}
+
 .empty{padding:50px 20px; text-align:center; color:var(--muted); font-size:13.5px;}
+
+/* ---------- image zoom modal ---------- */
+.zoom-overlay{
+  position:fixed; inset:0; background:rgba(10,15,8,.86); z-index:300; display:flex; align-items:center;
+  justify-content:center; padding:20px;
+}
+.zoom-close{
+  position:absolute; top:16px; right:16px; background:rgba(255,255,255,.15); border:none; color:#fff;
+  width:38px; height:38px; border-radius:50%; font-size:22px; cursor:pointer; z-index:2;
+}
+.zoom-box{
+  background:var(--bg); border-radius:18px; overflow:hidden; max-width:480px; width:100%; max-height:90vh;
+  overflow-y:auto;
+}
+.zoom-box img{width:100%; display:block; max-height:60vh; object-fit:cover;}
+.zoom-info{padding:18px 20px 22px; display:flex; flex-direction:column; gap:14px;}
+.zoom-info b{font-size:19px; display:block;}
+.zoom-info .price{margin-top:4px; font-size:20px;}
+.zoom-share{display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:12.5px; color:var(--muted);}
+.share-btn{
+  border:1.5px solid var(--line); background:#fff; border-radius:20px; padding:7px 14px; font-size:12.5px;
+  font-weight:600; cursor:pointer; transition:.15s;
+}
+.share-btn.wa:hover{border-color:#25D366; color:#1a9c4c;}
+.share-btn.fb:hover{border-color:#1877F2; color:#1877F2;}
 
 /* ---------- footer ---------- */
 .site-footer{
