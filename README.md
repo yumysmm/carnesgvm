@@ -1,4 +1,4 @@
-# Carnexpress Lite
+# Cali Carnes
 
 Tienda online de carnes: banners, catálogo con carrito, videos de recetas y
 pedido final por WhatsApp. Los datos (banners, productos, recetas, ajustes)
@@ -31,31 +31,48 @@ npm run dev
 
 Abre la URL que te muestra la terminal (normalmente `http://localhost:5173`).
 
-## 3. Administrar el contenido (banners, productos, recetas)
+## 3. Administrar el contenido: panel administrativo en /#admin
 
-Por ahora se administra directamente desde Supabase, sin necesidad de un
-panel aparte:
+La tienda tiene un panel de administración integrado en la misma app, en
+la ruta `/#admin` (por ejemplo `https://tu-sitio.com/#admin`). Desde ahí
+puedes crear/editar/borrar productos, banners y recetas, subir sus fotos y
+videos, y cambiar tu número de WhatsApp — todo desde el celular, sin entrar
+a Supabase.
 
-- Ve a **Table editor** en Supabase.
-- **banners**: agrega filas con `image_url` (sube la imagen a algún hosting
-  o al *Storage* de Supabase y pega el link público), `sort_order` y
-  `active`.
-- **products**: `name`, `description`, `price`, `category`, `image_url`,
-  `active`.
-- **recipes**: `title`, `video_url` (pega un link de YouTube o un `.mp4`
-  público), `active`.
-- **settings**: cambia `whatsapp_cali` por tu número real (formato
-  `57XXXXXXXXXX`), y `intro_title` / `intro_subtitle` por tu mensaje.
+### Crear tu usuario administrador
 
-> Cuando quieras, puedo construirte un panel de administración con login
-> para que edites todo esto desde el celular sin entrar a Supabase.
+1. En Supabase, ve a **Authentication → Users → Add user**.
+2. Crea tu usuario con un correo y una contraseña (esas son las que vas a
+   usar para iniciar sesión en `/#admin`). Marca "Auto Confirm User" si te
+   lo pregunta.
+3. Asegúrate de haber corrido el `supabase/schema.sql` actualizado (incluye
+   las políticas de seguridad que permiten a un usuario **autenticado**
+   crear/editar/borrar, y a cualquier visitante solo leer — así nadie más
+   puede tocar tu catálogo). Si ya lo habías corrido antes, vuelve a
+   copiar y correr el archivo completo: las líneas repetidas no hacen daño
+   (usan `if not exists` / `on conflict do nothing` donde aplica) excepto
+   las políticas nuevas, que debes correr sí o sí una vez.
+4. El bucket de Storage `media` (para las fotos/videos que subas desde el
+   panel) también se crea automáticamente al correr ese script.
+
+### Usar el panel
+
+Entra a `https://tu-sitio.com/#admin`, inicia sesión, y verás 4 pestañas:
+**Productos**, **Banners**, **Recetas** y **Ajustes**. Cada una te deja
+crear, editar, ocultar/mostrar y borrar. Las fotos y videos se suben
+directo desde tu celular o computador (quedan guardados en Supabase
+Storage). Los cambios se reflejan en la tienda de inmediato, sin
+necesidad de volver a publicar el sitio.
+
+> Alternativa: si prefieres, también puedes seguir editando el catálogo
+> directamente desde **Table editor** en Supabase.
 
 ## 4. Subir el código a GitHub
 
 ```bash
 git init
 git add .
-git commit -m "Carnexpress Lite"
+git commit -m "Cali Carnes"
 git branch -M main
 git remote add origin https://github.com/TU-USUARIO/carnexpress-lite.git
 git push -u origin main
@@ -116,7 +133,6 @@ y funciona offline para lo ya cargado. Antes de publicar, reemplaza los
 íconos de ejemplo en `public/icons/` (ver `public/icons/README.txt`).
 
 ## Siguientes pasos posibles
-- Panel de administración con login (sin tocar Supabase directamente).
 - Pagos en línea (Wompi / MercadoPago).
 - Múltiples sedes (Cali, Bogotá, Medellín) con número de WhatsApp distinto
-  según ciudad, como en Carnexpress.
+  según ciudad.
