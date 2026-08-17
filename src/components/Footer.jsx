@@ -4,7 +4,7 @@ export default function Footer({ settings }) {
       <div className="footer-inner">
         <div className="footer-col">
           <b>Cali Carnes</b>
-          Carne fresca seleccionada, empacada al vacío y entregada a domicilio el mismo día.
+          Carne fresca seleccionada, empacada al vacío y entregada a domicilio.
         </div>
         <div className="footer-col">
           <b>Contacto</b>
