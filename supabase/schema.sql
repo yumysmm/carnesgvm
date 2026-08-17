@@ -3,6 +3,8 @@
 create table if not exists banners (
   id uuid primary key default gen_random_uuid(),
   image_url text not null,
+  title text,
+  subtitle text,
   link_url text,
   sort_order int default 0,
   active boolean default true,
@@ -42,6 +44,10 @@ insert into settings (key, value) values
   ('intro_title', 'Carne fresca a domicilio'),
   ('intro_subtitle', 'Elige tus productos y confirma tu pedido por WhatsApp.')
 on conflict (key) do nothing;
+
+-- Si ya habías creado la tabla banners antes (sin title/subtitle), corre esto también:
+alter table banners add column if not exists title text;
+alter table banners add column if not exists subtitle text;
 
 -- Datos de ejemplo (bórralos cuando cargues los tuyos reales)
 insert into products (name, description, price, category, active) values
