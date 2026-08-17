@@ -4,6 +4,7 @@ import ProductsTab from "./ProductsTab.jsx";
 import BannersTab from "./BannersTab.jsx";
 import RecipesTab from "./RecipesTab.jsx";
 import SettingsTab from "./SettingsTab.jsx";
+import OrdersTab from "./OrdersTab.jsx";
 
 function LoginForm({ onLoggedIn }) {
   const [email, setEmail] = useState("");
@@ -46,6 +47,7 @@ function LoginForm({ onLoggedIn }) {
 }
 
 const TABS = [
+  { id: "orders", label: "🧾 Pedidos" },
   { id: "products", label: "🥩 Productos" },
   { id: "banners", label: "🖼️ Banners" },
   { id: "recipes", label: "🎥 Recetas" },
@@ -54,7 +56,7 @@ const TABS = [
 
 export default function AdminApp() {
   const [session, setSession] = useState(undefined); // undefined = cargando, null = sin sesión
-  const [tab, setTab] = useState("products");
+  const [tab, setTab] = useState("orders");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -91,6 +93,7 @@ export default function AdminApp() {
       </div>
 
       <div className="admin-content">
+        {tab === "orders" && <OrdersTab />}
         {tab === "products" && <ProductsTab />}
         {tab === "banners" && <BannersTab />}
         {tab === "recipes" && <RecipesTab />}
