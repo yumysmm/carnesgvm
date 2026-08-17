@@ -60,10 +60,10 @@ img{max-width:100%;}
 }
 
 /* ---------- hero / banners ---------- */
-.hero{position:relative; overflow:hidden; background:var(--green-dark);}
+.hero{position:relative; overflow:hidden; background:var(--green-dark); height:clamp(180px, 32vw, 360px);}
 .hero-track{display:flex; transition:transform .5s ease; height:100%;}
-.hero-slide{flex:0 0 100%; position:relative;}
-.hero-slide img{width:100%; height:100%; object-fit:cover; display:block; aspect-ratio:16/7; min-height:200px;}
+.hero-slide{flex:0 0 100%; position:relative; height:100%;}
+.hero-slide img{width:100%; height:100%; object-fit:cover; display:block;}
 .hero-slide .caption{
   position:absolute; left:0; right:0; bottom:0; padding:22px 24px;
   background:linear-gradient(0deg, rgba(10,20,12,.75), transparent);
