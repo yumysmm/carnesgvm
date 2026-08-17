@@ -3,7 +3,7 @@ export default function Footer({ settings }) {
     <footer className="site-footer">
       <div className="footer-inner">
         <div className="footer-col">
-          <b>Carnexpress Lite</b>
+          <b>Cali Carnes</b>
           Carne fresca seleccionada, empacada al vacío y entregada a domicilio el mismo día.
         </div>
         <div className="footer-col">
@@ -19,7 +19,7 @@ export default function Footer({ settings }) {
           8:00am – 6:00pm
         </div>
       </div>
-      <div className="footer-bottom">© {new Date().getFullYear()} Carnexpress Lite. Todos los derechos reservados.</div>
+      <div className="footer-bottom">© {new Date().getFullYear()} Cali Carnes. Todos los derechos reservados.</div>
     </footer>
   );
 }
