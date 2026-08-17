@@ -134,7 +134,19 @@ export default function App() {
     return lines.join("\n");
   };
 
-  const sendWhatsapp = () => {
+  const sendWhatsapp = async () => {
+    try {
+      await supabase.from("orders").insert({
+        customer_name: form.nombre,
+        customer_phone: form.celular,
+        customer_address: form.direccion,
+        customer_neighborhood: form.barrio,
+        items: cartItems.map((i) => ({ name: i.name, price: i.price, qty: i.qty })),
+        subtotal,
+      });
+    } catch (err) {
+      console.error("No se pudo guardar el pedido:", err);
+    }
     const num = (settings.whatsapp_cali || "").replace(/\D/g, "");
     const msg = encodeURIComponent(buildMessage());
     window.open(`https://wa.me/${num}?text=${msg}`, "_blank");
