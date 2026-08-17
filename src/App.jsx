@@ -40,6 +40,9 @@ export default function App() {
   const [form, setForm] = useState({ nombre: "", celular: "", direccion: "", barrio: "" });
   const [errorMsg, setErrorMsg] = useState("");
   const [zoomProduct, setZoomProduct] = useState(null);
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
   const catalogRef = useRef(null);
 
   useEffect(() => {
@@ -70,6 +73,40 @@ export default function App() {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    setIsStandalone(standalone);
+
+    const onBeforeInstall = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    const onInstalled = () => {
+      setInstallPrompt(null);
+      setIsStandalone(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", onBeforeInstall);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+
+  const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+
+  const handleInstallClick = async () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      const choice = await installPrompt.userChoice;
+      if (choice.outcome === "accepted") setInstallPrompt(null);
+    } else {
+      setShowInstallHelp(true);
+    }
+  };
 
   const categories = useMemo(() => {
     const set = new Set(products.map((p) => p.category || "Otros"));
@@ -215,6 +252,11 @@ export default function App() {
                 </button>
               ))}
           </div>
+          {!isStandalone && (
+            <button className="nav-install" onClick={handleInstallClick} aria-label="Instalar app" title="Instalar app">
+              ⬇ <span className="nav-install-label">Instalar app</span>
+            </button>
+          )}
           <button className="nav-cart" onClick={() => setView("cart")}>
             🛒 {totalQty > 0 && <span className="badge">{totalQty}</span>}
           </button>
@@ -450,6 +492,46 @@ export default function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {showInstallHelp && (
+        <Overlay onClose={() => setShowInstallHelp(false)}>
+          <div className="sheet-head">
+            <h2 className="disp">Instalar la app</h2>
+            <button className="closebtn" onClick={() => setShowInstallHelp(false)}>
+              ×
+            </button>
+          </div>
+          {isIos ? (
+            <div className="install-steps">
+              <p>En tu iPhone/iPad, con Safari:</p>
+              <ol>
+                <li>
+                  Toca el botón compartir <b>􀈂</b> (el cuadrado con la flecha hacia arriba), abajo en la barra del navegador.
+                </li>
+                <li>
+                  Baja y elige <b>"Agregar a inicio"</b> (Add to Home Screen).
+                </li>
+                <li>Confirma tocando "Agregar" arriba a la derecha.</li>
+              </ol>
+            </div>
+          ) : (
+            <div className="install-steps">
+              <p>En Chrome / Edge (computador o Android):</p>
+              <ol>
+                <li>
+                  Busca el ícono de instalar <b>⊕</b> o <b>⋮</b> en la barra de direcciones / menú del navegador.
+                </li>
+                <li>
+                  Elige <b>"Instalar app"</b> o <b>"Instalar Cali Carnes"</b>.
+                </li>
+              </ol>
+            </div>
+          )}
+          <button className="btn btn-secondary" onClick={() => setShowInstallHelp(false)}>
+            Entendido
+          </button>
+        </Overlay>
       )}
     </>
   );

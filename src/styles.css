@@ -39,6 +39,14 @@ img{max-width:100%;}
   padding:8px 12px; border-radius:20px; cursor:pointer; white-space:nowrap;
 }
 .nav-link.active, .nav-link:hover{background:rgba(255,255,255,.12); color:#fff;}
+.nav-install{
+  flex-shrink:0; background:none; border:1.5px solid rgba(255,255,255,.35); color:#fff; border-radius:24px;
+  padding:8px 14px; font-weight:700; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px;
+  transition:background .15s ease, transform .15s ease;
+}
+.nav-install:hover{background:rgba(255,255,255,.1); transform:translateY(-1px);}
+.nav-install:active{transform:translateY(0);}
+
 .nav-cart{
   flex-shrink:0; background:var(--mustard); color:var(--green-dark); border:none; border-radius:24px;
   padding:9px 16px; font-weight:800; font-size:13.5px; cursor:pointer; display:flex; align-items:center; gap:7px;
@@ -263,10 +271,16 @@ a:focus-visible, button:focus-visible, input:focus-visible{
   font-size:12.5px; line-height:1.5; color:#5A3C0F; margin:6px 0 14px;
 }
 
+.install-steps p{font-size:13px; color:var(--ink); margin:0 0 10px;}
+.install-steps ol{margin:0 0 18px; padding-left:20px;}
+.install-steps li{font-size:13px; line-height:1.7; color:var(--ink);}
+
 @media (max-width: 720px){
   .nav-brand span{display:none;}
   .nav-inner{gap:10px; padding:10px 14px;}
   .nav-links{-webkit-mask-image:linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);}
+  .nav-install{padding:8px 10px;}
+  .nav-install-label{display:none;}
   .section{padding:24px 16px 6px;}
   .grid{gap:12px;}
 }
