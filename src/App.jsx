@@ -104,6 +104,14 @@ export default function App() {
     });
   };
 
+  const removeItem = (id) => {
+    setCart((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
+
   const updateForm = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
   const requiredOk = form.nombre && form.celular && form.direccion;
 
@@ -279,6 +287,9 @@ export default function App() {
                   <span>{i.qty}</span>
                   <button onClick={() => setQty(i.id, 1)}>+</button>
                 </div>
+                <button className="removeitem" onClick={() => removeItem(i.id)} aria-label={`Quitar ${i.name}`}>
+                  ×
+                </button>
               </div>
             ))
           )}
