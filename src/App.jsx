@@ -93,6 +93,8 @@ export default function App() {
 
   const subtotal = cartItems.reduce((s, i) => s + Number(i.price) * i.qty, 0);
   const totalQty = cartItems.reduce((s, i) => s + i.qty, 0);
+  const pedidoMinimo = Number(settings.pedido_minimo) || 0;
+  const belowMinimum = pedidoMinimo > 0 && subtotal > 0 && subtotal < pedidoMinimo;
 
   const setQty = (id, delta) => {
     setCart((prev) => {
@@ -318,7 +320,16 @@ export default function App() {
             <span>Total</span>
             <span>{money(subtotal)}</span>
           </div>
-          <button className="btn btn-primary" disabled={cartItems.length === 0} onClick={() => setView("form")}>
+          {belowMinimum && (
+            <div className="min-order-warn">
+              El pedido mínimo es {money(pedidoMinimo)}. Te faltan {money(pedidoMinimo - subtotal)} para continuar.
+            </div>
+          )}
+          <button
+            className="btn btn-primary"
+            disabled={cartItems.length === 0 || belowMinimum}
+            onClick={() => setView("form")}
+          >
             Continuar con mis datos
           </button>
           <button className="btn btn-secondary" onClick={closeAll}>

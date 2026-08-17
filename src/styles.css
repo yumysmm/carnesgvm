@@ -258,6 +258,10 @@ a:focus-visible, button:focus-visible, input:focus-visible{
 }
 
 .check-row{display:flex; align-items:flex-start; gap:8px; font-size:12.5px; margin:12px 0;}
+.min-order-warn{
+  background:#FBEFE3; border:1px solid var(--mustard); border-radius:10px; padding:11px 14px;
+  font-size:12.5px; line-height:1.5; color:#5A3C0F; margin:6px 0 14px;
+}
 
 @media (max-width: 720px){
   .nav-brand span{display:none;}
