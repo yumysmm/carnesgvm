@@ -24,13 +24,15 @@ export default function BannersTab() {
   }, []);
 
   const toggleActive = async (row) => {
-    await supabase.from("banners").update({ active: !row.active }).eq("id", row.id);
+    const { error } = await supabase.from("banners").update({ active: !row.active }).eq("id", row.id);
+    if (error) setError("No se pudo actualizar: " + error.message);
     load();
   };
 
   const remove = async (row) => {
     if (!confirm("¿Eliminar este banner?")) return;
-    await supabase.from("banners").delete().eq("id", row.id);
+    const { error } = await supabase.from("banners").delete().eq("id", row.id);
+    if (error) setError("No se pudo borrar: " + error.message);
     load();
   };
 
@@ -66,10 +68,12 @@ export default function BannersTab() {
       sort_order: Number(editing.sort_order) || 0,
       active: editing.active,
     };
-    if (editing.id) {
-      await supabase.from("banners").update(payload).eq("id", editing.id);
-    } else {
-      await supabase.from("banners").insert(payload);
+    const { error } = editing.id
+      ? await supabase.from("banners").update(payload).eq("id", editing.id)
+      : await supabase.from("banners").insert(payload);
+    if (error) {
+      setError("No se pudo guardar: " + error.message);
+      return;
     }
     setEditing(null);
     load();
@@ -83,6 +87,8 @@ export default function BannersTab() {
           + Nuevo banner
         </button>
       </div>
+
+      {error && !editing && <p className="admin-error">{error}</p>}
 
       {loading ? (
         <p>Cargando…</p>
@@ -120,9 +126,10 @@ export default function BannersTab() {
             <div className="admin-spec-box">
               <b>📐 Medida recomendada: 1600 × 700 px</b>
               <ul>
+                <li>El banner se muestra a un ancho máximo de 590 px en computador (se ve más pequeño y centrado, no ocupa toda la pantalla) y a todo el ancho en celular</li>
                 <li>Peso máximo 500 KB (ideal 200–300 KB) en JPG o WEBP</li>
-                <li>Deja el 15–20% inferior de la foto libre de texto/logo: ahí se sobrepone el título</li>
-                <li>Centra el elemento principal (producto, cara, logo): en celular se recorta más por los lados</li>
+                <li>Si tu imagen ya trae texto (como un flyer), colócalo dentro del centro y evita que quede pegado a los bordes: si la foto no calza exacto en la proporción, se recorta priorizando la parte de arriba</li>
+                <li>Si vas a usar los campos "Título/Subtítulo" de este formulario en vez de texto en la imagen, deja el 15–20% inferior de la foto libre: ahí se sobrepone ese texto</li>
               </ul>
             </div>
 
