@@ -117,6 +117,15 @@ export default function BannersTab() {
             <h3 className="disp">{editing.id ? "Editar banner" : "Nuevo banner"}</h3>
             {error && <p className="admin-error">{error}</p>}
 
+            <div className="admin-spec-box">
+              <b>📐 Medida recomendada: 1600 × 700 px</b>
+              <ul>
+                <li>Peso máximo 500 KB (ideal 200–300 KB) en JPG o WEBP</li>
+                <li>Deja el 15–20% inferior de la foto libre de texto/logo: ahí se sobrepone el título</li>
+                <li>Centra el elemento principal (producto, cara, logo): en celular se recorta más por los lados</li>
+              </ul>
+            </div>
+
             <label>Imagen del banner *</label>
             <input type="file" accept="image/*" onChange={handleFile} disabled={uploading} />
             {uploading && <p className="admin-hint">Subiendo imagen…</p>}
