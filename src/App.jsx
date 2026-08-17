@@ -228,16 +228,16 @@ export default function App() {
                     <span className="card-cat">{p.category || "Otros"}</span>
                     <div className="card-name">{p.name}</div>
                     <div className="card-desc">{p.description}</div>
+                    <span className="price disp">{money(p.price)}</span>
                     <div className="card-foot">
-                      <span className="price disp">{money(p.price)}</span>
                       {qty === 0 ? (
                         <button className="addbtn" onClick={() => setQty(p.id, 1)}>
-                          +
+                          🛒 Agregar al carrito
                         </button>
                       ) : (
-                        <div className="qtybox">
+                        <div className="qtybox full">
                           <button onClick={() => setQty(p.id, -1)}>–</button>
-                          <span>{qty}</span>
+                          <span>{qty} en el carrito</span>
                           <button onClick={() => setQty(p.id, 1)}>+</button>
                         </div>
                       )}
