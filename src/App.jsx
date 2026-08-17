@@ -118,6 +118,19 @@ export default function App() {
     [products, filter]
   );
 
+  // Si alguien llega desde un link compartido (#producto=ID), abrimos ese producto directamente.
+  useEffect(() => {
+    if (products.length === 0) return;
+    const match = window.location.hash.match(/producto=([^&]+)/);
+    if (match) {
+      const found = products.find((p) => p.id === match[1]);
+      if (found && found.image_url) {
+        setZoomProduct(found);
+        scrollToCatalog();
+      }
+    }
+  }, [products]);
+
   const cartItems = useMemo(() => {
     return Object.entries(cart)
       .filter(([, q]) => q > 0)
@@ -200,13 +213,16 @@ export default function App() {
 
   const siteUrl = typeof window !== "undefined" ? window.location.origin + import.meta.env.BASE_URL : "";
 
+  const productUrl = (product) => `${siteUrl}#producto=${product.id}`;
+
   const shareProduct = (product, network) => {
     const text = `${product.name} — ${money(product.price)} en Cali Carnes 🥩`;
+    const link = productUrl(product);
     if (network === "whatsapp") {
-      window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + siteUrl)}`, "_blank");
+      window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + link)}`, "_blank");
     } else if (network === "facebook") {
       window.open(
-        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(siteUrl)}&quote=${encodeURIComponent(text)}`,
+        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}&quote=${encodeURIComponent(text)}`,
         "_blank",
         "width=600,height=500"
       );
