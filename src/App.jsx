@@ -286,7 +286,6 @@ export default function App() {
         <p>{settings.intro_subtitle || "Elige tus productos y confirma tu pedido por WhatsApp."}</p>
         <div className="trust-row">
           <div className="trust-chip">✓ Empacado al vacío</div>
-          <div className="trust-chip">✓ Entrega el mismo día</div>
           <div className="trust-chip">✓ Frescura garantizada</div>
         </div>
       </div>
