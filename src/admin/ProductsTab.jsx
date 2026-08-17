@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { uploadMedia } from "./uploadMedia.js";
 import { money } from "../money.js";
 
 const EMPTY = { name: "", description: "", price: "", category: "", image_url: "", sort_order: 0, active: true };
+const PAGE_SIZE = 20;
 
 export default function ProductsTab() {
   const [items, setItems] = useState([]);
@@ -11,6 +12,8 @@ export default function ProductsTab() {
   const [editing, setEditing] = useState(null); // objeto en edición, o null
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   const load = async () => {
     setLoading(true);
@@ -23,6 +26,22 @@ export default function ProductsTab() {
   useEffect(() => {
     load();
   }, []);
+
+  // Cada vez que cambia la búsqueda, volvemos a la página 1
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(
+      (row) => row.name?.toLowerCase().includes(q) || (row.category || "").toLowerCase().includes(q)
+    );
+  }, [items, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const toggleActive = async (row) => {
     await supabase.from("products").update({ active: !row.active }).eq("id", row.id);
@@ -86,33 +105,66 @@ export default function ProductsTab() {
         </button>
       </div>
 
+      <div className="admin-search-row">
+        <input
+          type="text"
+          className="admin-search-input"
+          placeholder="🔍 Buscar por nombre o categoría…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        {search && (
+          <span className="admin-search-count">
+            {filtered.length} resultado{filtered.length !== 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+
       {loading ? (
         <p>Cargando…</p>
       ) : (
-        <div className="admin-list">
-          {items.map((row) => (
-            <div className="admin-row" key={row.id}>
-              <div className="admin-row-thumb" style={row.image_url ? { backgroundImage: `url(${row.image_url})` } : {}} />
-              <div className="admin-row-info">
-                <b>{row.name}</b>
-                <span>
-                  {money(row.price)} · {row.category || "General"}
-                </span>
+        <>
+          <div className="admin-list">
+            {pageItems.map((row) => (
+              <div className="admin-row" key={row.id}>
+                <div className="admin-row-thumb" style={row.image_url ? { backgroundImage: `url(${row.image_url})` } : {}} />
+                <div className="admin-row-info">
+                  <b>{row.name}</b>
+                  <span>
+                    {money(row.price)} · {row.category || "General"}
+                  </span>
+                </div>
+                <span className={"admin-status" + (row.active ? " on" : "")}>{row.active ? "Activo" : "Oculto"}</span>
+                <button className="admin-icon-btn" onClick={() => toggleActive(row)}>
+                  {row.active ? "Ocultar" : "Mostrar"}
+                </button>
+                <button className="admin-icon-btn" onClick={() => startEdit(row)}>
+                  Editar
+                </button>
+                <button className="admin-icon-btn danger" onClick={() => remove(row)}>
+                  Borrar
+                </button>
               </div>
-              <span className={"admin-status" + (row.active ? " on" : "")}>{row.active ? "Activo" : "Oculto"}</span>
-              <button className="admin-icon-btn" onClick={() => toggleActive(row)}>
-                {row.active ? "Ocultar" : "Mostrar"}
+            ))}
+            {filtered.length === 0 && (
+              <p className="admin-empty">{search ? "No hay productos que coincidan con tu búsqueda." : "Todavía no hay productos."}</p>
+            )}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="admin-pagination">
+              <button className="admin-icon-btn" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+                ← Anterior
               </button>
-              <button className="admin-icon-btn" onClick={() => startEdit(row)}>
-                Editar
-              </button>
-              <button className="admin-icon-btn danger" onClick={() => remove(row)}>
-                Borrar
+              <span>
+                Página {page} de {totalPages}
+              </span>
+              <button className="admin-icon-btn" disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}>
+                Siguiente →
               </button>
             </div>
-          ))}
-          {items.length === 0 && <p className="admin-empty">Todavía no hay productos.</p>}
-        </div>
+          )}
+        </>
       )}
 
       {editing && (
