@@ -5,6 +5,7 @@ const KEYS = [
   { key: "whatsapp_cali", label: "WhatsApp para pedidos (57 + celular, 10 dígitos)" },
   { key: "intro_title", label: "Título principal de la tienda" },
   { key: "intro_subtitle", label: "Subtítulo / frase debajo del título" },
+  { key: "pedido_minimo", label: "Pedido mínimo en $ (deja vacío o 0 para no exigir mínimo)" },
 ];
 
 export default function SettingsTab() {
