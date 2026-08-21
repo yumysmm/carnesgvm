@@ -5,6 +5,7 @@ import BannersTab from "./BannersTab.jsx";
 import RecipesTab from "./RecipesTab.jsx";
 import SettingsTab from "./SettingsTab.jsx";
 import OrdersTab from "./OrdersTab.jsx";
+import VisitsTab from "./VisitsTab.jsx";
 
 function LoginForm({ onLoggedIn }) {
   const [email, setEmail] = useState("");
@@ -48,6 +49,7 @@ function LoginForm({ onLoggedIn }) {
 
 const TABS = [
   { id: "orders", label: "🧾 Pedidos" },
+  { id: "visits", label: "📊 Visitas" },
   { id: "products", label: "🥩 Productos" },
   { id: "banners", label: "🖼️ Banners" },
   { id: "recipes", label: "🎥 Recetas" },
@@ -94,6 +96,7 @@ export default function AdminApp() {
 
       <div className="admin-content">
         {tab === "orders" && <OrdersTab />}
+        {tab === "visits" && <VisitsTab />}
         {tab === "products" && <ProductsTab />}
         {tab === "banners" && <BannersTab />}
         {tab === "recipes" && <RecipesTab />}
