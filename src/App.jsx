@@ -74,6 +74,20 @@ export default function App() {
     })();
   }, []);
 
+  // Registrar la visita una sola vez por sesión de navegador.
+  useEffect(() => {
+    try {
+      if (!sessionStorage.getItem("cc_visit_logged")) {
+        sessionStorage.setItem("cc_visit_logged", "1");
+        supabase.from("visits").insert({}).then(({ error }) => {
+          if (error) console.error("No se pudo registrar la visita:", error);
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
   useEffect(() => {
     const standalone =
       window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
@@ -427,6 +441,7 @@ export default function App() {
           <Field label="Barrio">
             <input value={form.barrio} onChange={(e) => updateForm("barrio", e.target.value)} />
           </Field>
+          <p style={{ fontSize: 11.5, color: "var(--muted)" }}>🛵 Por ahora solo hacemos domicilios dentro de Cali.</p>
           <div className="total-row grand">
             <span>Total</span>
             <span>{money(subtotal)}</span>
@@ -448,6 +463,7 @@ export default function App() {
               ×
             </button>
           </div>
+          <div className="min-order-warn">⚠️ Revisá bien los datos del cliente antes de enviar el pedido.</div>
           <pre
             style={{
               whiteSpace: "pre-wrap",
