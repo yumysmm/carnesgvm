@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 
-const EMPTY = { slug: "", name: "", whatsapp: "", owner_user_id: "", active: true };
+const EMPTY = { slug: "", name: "", whatsapp: "", owner_user_id: "", email: "", active: true };
 
 export default function VendorsTab() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
   const [error, setError] = useState("");
+  const [looking, setLooking] = useState(false);
+  const [lookupMsg, setLookupMsg] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -21,8 +23,14 @@ export default function VendorsTab() {
     load();
   }, []);
 
-  const startNew = () => setEditing({ ...EMPTY });
-  const startEdit = (row) => setEditing({ ...row });
+  const startNew = () => {
+    setEditing({ ...EMPTY });
+    setLookupMsg("");
+  };
+  const startEdit = (row) => {
+    setEditing({ ...row, email: "" });
+    setLookupMsg("");
+  };
 
   const toggleActive = async (row) => {
     const { error } = await supabase.from("vendors").update({ active: !row.active }).eq("id", row.id);
@@ -37,9 +45,31 @@ export default function VendorsTab() {
     load();
   };
 
+  const lookupEmail = async () => {
+    if (!editing.email) {
+      setLookupMsg("Escribe un correo primero.");
+      return;
+    }
+    setLooking(true);
+    setLookupMsg("");
+    const { data, error } = await supabase.rpc("get_user_id_by_email", { user_email: editing.email.trim() });
+    setLooking(false);
+    if (error) {
+      setLookupMsg("Error al buscar: " + error.message);
+      return;
+    }
+    if (!data) {
+      setLookupMsg("No se encontró ningún usuario con ese correo. Créalo primero en Supabase → Authentication → Users.");
+      setEditing((prev) => ({ ...prev, owner_user_id: "" }));
+      return;
+    }
+    setEditing((prev) => ({ ...prev, owner_user_id: data }));
+    setLookupMsg("✓ Usuario encontrado y vinculado.");
+  };
+
   const save = async () => {
     if (!editing.slug || !editing.name || !editing.owner_user_id) {
-      setError("Slug, nombre y UUID de usuario son obligatorios.");
+      setError("Slug, nombre y un correo ya vinculado (con el botón Buscar) son obligatorios.");
       return;
     }
     setError("");
@@ -47,7 +77,7 @@ export default function VendorsTab() {
       slug: editing.slug.trim().toLowerCase().replace(/\s+/g, "-"),
       name: editing.name,
       whatsapp: editing.whatsapp || null,
-      owner_user_id: editing.owner_user_id.trim(),
+      owner_user_id: editing.owner_user_id,
       active: editing.active,
     };
     const { error } = editing.id
@@ -76,8 +106,8 @@ export default function VendorsTab() {
         <b>Cómo agregar un vendedor</b>
         <ul>
           <li>Primero créale una cuenta en Supabase → Authentication → Users → Add user (correo + contraseña)</li>
-          <li>Copia el UUID de ese usuario (columna "UID" en la lista de usuarios)</li>
-          <li>Vuelve aquí y crea el vendedor pegando ese UUID, un "slug" corto (ej. "juan") y su nombre</li>
+          <li>Vuelve aquí, escribe ese mismo correo y presiona "Buscar" — el sistema vincula al usuario automáticamente</li>
+          <li>Completa el nombre y un "slug" corto (ej. "juan") y guarda</li>
           <li>El link de su tienda queda: tu-sitio.com/?vendedor=juan</li>
         </ul>
       </div>
@@ -130,12 +160,27 @@ export default function VendorsTab() {
             <label>WhatsApp propio (opcional, si no lo dejas usa el general)</label>
             <input value={editing.whatsapp || ""} onChange={(e) => setEditing({ ...editing, whatsapp: e.target.value })} placeholder="573001234567" />
 
-            <label>UUID del usuario en Supabase (Authentication → Users) *</label>
-            <input
-              value={editing.owner_user_id}
-              onChange={(e) => setEditing({ ...editing, owner_user_id: e.target.value })}
-              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-            />
+            <label>Correo del vendedor (ya creado en Supabase Authentication) *</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                style={{ flex: 1 }}
+                type="email"
+                value={editing.email}
+                onChange={(e) => setEditing({ ...editing, email: e.target.value })}
+                placeholder="juan@correo.com"
+              />
+              <button type="button" className="admin-icon-btn" onClick={lookupEmail} disabled={looking}>
+                {looking ? "Buscando…" : "Buscar"}
+              </button>
+            </div>
+            {lookupMsg && (
+              <p className={editing.owner_user_id ? "admin-hint" : "admin-error"} style={{ marginTop: 6 }}>
+                {lookupMsg}
+              </p>
+            )}
+            {editing.owner_user_id && !lookupMsg && (
+              <p className="admin-hint">✓ Vinculado a un usuario existente.</p>
+            )}
 
             <label className="admin-checkbox-row">
               <input type="checkbox" checked={editing.active} onChange={(e) => setEditing({ ...editing, active: e.target.checked })} />
