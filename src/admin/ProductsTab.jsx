@@ -3,10 +3,9 @@ import { supabase } from "../supabaseClient";
 import { uploadMedia } from "./uploadMedia.js";
 import { money } from "../money.js";
 
-const EMPTY = { name: "", description: "", price: "", category: "", image_url: "", sort_order: 0, active: true };
 const PAGE_SIZE = 20;
 
-export default function ProductsTab() {
+export default function ProductsTab({ isOwner, myVendorId, vendorsList }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null); // objeto en edición, o null
@@ -15,9 +14,22 @@ export default function ProductsTab() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
+  const EMPTY = {
+    name: "",
+    description: "",
+    price: "",
+    category: "",
+    image_url: "",
+    sort_order: 0,
+    active: true,
+    vendor_id: isOwner ? "" : myVendorId,
+  };
+
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("products").select("*").order("sort_order");
+    let query = supabase.from("products").select("*").order("sort_order");
+    if (!isOwner) query = query.eq("vendor_id", myVendorId);
+    const { data, error } = await query;
     if (error) setError(error.message);
     else setItems(data || []);
     setLoading(false);
@@ -25,12 +37,18 @@ export default function ProductsTab() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Cada vez que cambia la búsqueda, volvemos a la página 1
   useEffect(() => {
     setPage(1);
   }, [search]);
+
+  const vendorName = (vendorId) => {
+    if (!vendorId) return "General (empresa)";
+    const v = vendorsList.find((x) => x.id === vendorId);
+    return v ? v.name : "—";
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -44,13 +62,15 @@ export default function ProductsTab() {
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const toggleActive = async (row) => {
-    await supabase.from("products").update({ active: !row.active }).eq("id", row.id);
+    const { error } = await supabase.from("products").update({ active: !row.active }).eq("id", row.id);
+    if (error) setError("No se pudo actualizar: " + error.message);
     load();
   };
 
   const remove = async (row) => {
     if (!confirm(`¿Eliminar "${row.name}"?`)) return;
-    await supabase.from("products").delete().eq("id", row.id);
+    const { error } = await supabase.from("products").delete().eq("id", row.id);
+    if (error) setError("No se pudo borrar: " + error.message);
     load();
   };
 
@@ -86,11 +106,20 @@ export default function ProductsTab() {
       image_url: editing.image_url,
       sort_order: Number(editing.sort_order) || 0,
       active: editing.active,
+      vendor_id: isOwner ? editing.vendor_id || null : myVendorId,
     };
     if (editing.id) {
-      await supabase.from("products").update(payload).eq("id", editing.id);
+      const { error } = await supabase.from("products").update(payload).eq("id", editing.id);
+      if (error) {
+        setError("No se pudo guardar: " + error.message);
+        return;
+      }
     } else {
-      await supabase.from("products").insert(payload);
+      const { error } = await supabase.from("products").insert(payload);
+      if (error) {
+        setError("No se pudo guardar: " + error.message);
+        return;
+      }
     }
     setEditing(null);
     load();
@@ -99,11 +128,13 @@ export default function ProductsTab() {
   return (
     <div>
       <div className="admin-section-head">
-        <h2 className="disp">Productos</h2>
+        <h2 className="disp">{isOwner ? "Productos" : "Mis productos"}</h2>
         <button className="btn btn-primary admin-btn-inline" onClick={startNew}>
           + Nuevo producto
         </button>
       </div>
+
+      {error && !editing && <p className="admin-error">{error}</p>}
 
       <div className="admin-search-row">
         <input
@@ -132,6 +163,7 @@ export default function ProductsTab() {
                   <b>{row.name}</b>
                   <span>
                     {money(row.price)} · {row.category || "General"}
+                    {isOwner ? ` · ${vendorName(row.vendor_id)}` : ""}
                   </span>
                 </div>
                 <span className={"admin-status" + (row.active ? " on" : "")}>{row.active ? "Activo" : "Oculto"}</span>
@@ -189,6 +221,26 @@ export default function ProductsTab() {
                 <input value={editing.category || ""} onChange={(e) => setEditing({ ...editing, category: e.target.value })} placeholder="Res, Pollo, Cerdo…" />
               </div>
             </div>
+
+            {isOwner && (
+              <>
+                <label>Vendedor (dueño del producto)</label>
+                <select
+                  value={editing.vendor_id || ""}
+                  onChange={(e) => setEditing({ ...editing, vendor_id: e.target.value || null })}
+                  style={{ width: "100%", padding: "10px 12px", border: "1.5px solid var(--line)", borderRadius: 10, fontSize: 14 }}
+                >
+                  <option value="">General (empresa)</option>
+                  {vendorsList
+                    .filter((v) => !v.is_owner)
+                    .map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name}
+                      </option>
+                    ))}
+                </select>
+              </>
+            )}
 
             <label>Foto del producto</label>
             <input type="file" accept="image/*" onChange={handleFile} disabled={uploading} />

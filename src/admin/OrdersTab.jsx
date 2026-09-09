@@ -11,7 +11,7 @@ function daysAgoStr(n) {
   return d.toISOString().slice(0, 10);
 }
 
-export default function OrdersTab() {
+export default function OrdersTab({ isOwner, myVendorId, vendorsList }) {
   const [from, setFrom] = useState(daysAgoStr(7));
   const [to, setTo] = useState(todayStr());
   const [orders, setOrders] = useState([]);
@@ -19,18 +19,25 @@ export default function OrdersTab() {
   const [error, setError] = useState("");
   const [expanded, setExpanded] = useState(null);
 
+  const vendorName = (vendorId) => {
+    if (!vendorId) return "General";
+    const v = vendorsList.find((x) => x.id === vendorId);
+    return v ? v.name : "—";
+  };
+
   const load = async () => {
     setLoading(true);
     setError("");
-    // "to" incluye todo ese día hasta las 23:59:59
     const toEnd = new Date(to + "T23:59:59").toISOString();
     const fromStart = new Date(from + "T00:00:00").toISOString();
-    const { data, error } = await supabase
+    let query = supabase
       .from("orders")
       .select("*")
       .gte("created_at", fromStart)
       .lte("created_at", toEnd)
       .order("created_at", { ascending: false });
+    if (!isOwner) query = query.eq("vendor_id", myVendorId);
+    const { data, error } = await query;
     if (error) setError(error.message);
     else setOrders(data || []);
     setLoading(false);
@@ -55,9 +62,10 @@ export default function OrdersTab() {
   };
 
   const exportCsv = () => {
-    const header = ["Fecha", "Cliente", "Celular", "Dirección", "Barrio", "Productos", "Subtotal"];
+    const header = ["Fecha", "Vendedor", "Cliente", "Celular", "Dirección", "Barrio", "Productos", "Subtotal"];
     const rows = orders.map((o) => [
       new Date(o.created_at).toLocaleString("es-CO"),
+      vendorName(o.vendor_id),
       o.customer_name || "",
       o.customer_phone || "",
       o.customer_address || "",
@@ -80,7 +88,7 @@ export default function OrdersTab() {
   return (
     <div>
       <div className="admin-section-head">
-        <h2 className="disp">Pedidos</h2>
+        <h2 className="disp">{isOwner ? "Pedidos" : "Mis pedidos"}</h2>
       </div>
 
       <div className="admin-order-filters">
@@ -128,7 +136,10 @@ export default function OrdersTab() {
               <div className="admin-order-main" onClick={() => setExpanded(expanded === o.id ? null : o.id)}>
                 <div>
                   <b>{o.customer_name || "(sin nombre)"}</b>
-                  <span className="admin-order-date">{new Date(o.created_at).toLocaleString("es-CO")}</span>
+                  <span className="admin-order-date">
+                    {new Date(o.created_at).toLocaleString("es-CO")}
+                    {isOwner ? ` · ${vendorName(o.vendor_id)}` : ""}
+                  </span>
                 </div>
                 <b className="disp admin-order-total">{money(o.subtotal)}</b>
               </div>
