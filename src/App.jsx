@@ -43,14 +43,29 @@ export default function App() {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isStandalone, setIsStandalone] = useState(false);
   const [showInstallHelp, setShowInstallHelp] = useState(false);
+  const [vendor, setVendor] = useState(null); // null = tienda general, o {id, slug, name, whatsapp}
   const catalogRef = useRef(null);
+
+  const vendorSlug = new URLSearchParams(window.location.search).get("vendedor");
 
   useEffect(() => {
     (async () => {
       try {
+        let vendorRow = null;
+        if (vendorSlug) {
+          const { data } = await supabase.from("vendors").select("*").eq("slug", vendorSlug).eq("active", true).maybeSingle();
+          vendorRow = data || null;
+          setVendor(vendorRow);
+        }
+
+        let productsQuery = supabase.from("products").select("*").eq("active", true).order("sort_order");
+        productsQuery = vendorRow
+          ? productsQuery.or(`vendor_id.is.null,vendor_id.eq.${vendorRow.id}`)
+          : productsQuery.is("vendor_id", null);
+
         const [b, p, r, s] = await Promise.all([
           supabase.from("banners").select("*").eq("active", true).order("sort_order"),
-          supabase.from("products").select("*").eq("active", true).order("sort_order"),
+          productsQuery,
           supabase.from("recipes").select("*").eq("active", true).order("sort_order"),
           supabase.from("settings").select("*"),
         ]);
@@ -72,6 +87,7 @@ export default function App() {
         setLoading(false);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Registrar la visita una sola vez por sesión de navegador.
@@ -207,11 +223,12 @@ export default function App() {
         customer_neighborhood: form.barrio,
         items: cartItems.map((i) => ({ name: i.name, price: i.price, qty: i.qty })),
         subtotal,
+        vendor_id: vendor ? vendor.id : null,
       });
     } catch (err) {
       console.error("No se pudo guardar el pedido:", err);
     }
-    const num = (settings.whatsapp_cali || "").replace(/\D/g, "");
+    const num = ((vendor && vendor.whatsapp) || settings.whatsapp_cali || "").replace(/\D/g, "");
     const msg = encodeURIComponent(buildMessage());
     window.open(`https://wa.me/${num}?text=${msg}`, "_blank");
   };
@@ -227,7 +244,10 @@ export default function App() {
 
   const siteUrl = typeof window !== "undefined" ? window.location.origin + import.meta.env.BASE_URL : "";
 
-  const productUrl = (product) => `${siteUrl}#producto=${product.id}`;
+  const productUrl = (product) => {
+    const query = vendorSlug ? `?vendedor=${encodeURIComponent(vendorSlug)}` : "";
+    return `${siteUrl}${query}#producto=${product.id}`;
+  };
 
   const shareProduct = (product, network) => {
     const text = `${product.name} — ${money(product.price)} en Cali Carnes 🥩`;
@@ -296,6 +316,7 @@ export default function App() {
       <Banners banners={banners} />
 
       <div className="intro-strip">
+        {vendor && <div className="vendor-badge">👤 Atendido por {vendor.name}</div>}
         <h1 className="disp">{settings.intro_title || "Carne fresca a domicilio"}</h1>
         <p>{settings.intro_subtitle || "Elige tus productos y confirma tu pedido por WhatsApp."}</p>
         <div className="trust-row">
