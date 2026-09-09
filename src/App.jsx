@@ -52,16 +52,28 @@ export default function App() {
     (async () => {
       try {
         let vendorRow = null;
+        let selectedIds = [];
         if (vendorSlug) {
           const { data } = await supabase.from("vendors").select("*").eq("slug", vendorSlug).eq("active", true).maybeSingle();
           vendorRow = data || null;
           setVendor(vendorRow);
+          if (vendorRow) {
+            const { data: sel } = await supabase
+              .from("vendor_selected_products")
+              .select("product_id")
+              .eq("vendor_id", vendorRow.id);
+            selectedIds = (sel || []).map((r) => r.product_id);
+          }
         }
 
         let productsQuery = supabase.from("products").select("*").eq("active", true).order("sort_order");
-        productsQuery = vendorRow
-          ? productsQuery.or(`vendor_id.is.null,vendor_id.eq.${vendorRow.id}`)
-          : productsQuery.is("vendor_id", null);
+        if (vendorRow) {
+          // Sus propios productos + los generales que él eligió mostrar en su tienda.
+          const idsList = selectedIds.length > 0 ? selectedIds.join(",") : "00000000-0000-0000-0000-000000000000";
+          productsQuery = productsQuery.or(`vendor_id.eq.${vendorRow.id},id.in.(${idsList})`);
+        } else {
+          productsQuery = productsQuery.is("vendor_id", null);
+        }
 
         const [b, p, r, s] = await Promise.all([
           supabase.from("banners").select("*").eq("active", true).order("sort_order"),
