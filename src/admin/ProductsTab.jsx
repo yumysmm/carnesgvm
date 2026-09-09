@@ -5,6 +5,84 @@ import { money } from "../money.js";
 
 const PAGE_SIZE = 20;
 
+function GeneralProductsPicker({ myVendorId }) {
+  const [general, setGeneral] = useState([]);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    const [g, s] = await Promise.all([
+      supabase.from("products").select("*").is("vendor_id", null).eq("active", true).order("sort_order"),
+      supabase.from("vendor_selected_products").select("product_id").eq("vendor_id", myVendorId),
+    ]);
+    if (g.error) setError(g.error.message);
+    setGeneral(g.data || []);
+    setSelectedIds(new Set((s.data || []).map((r) => r.product_id)));
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const toggle = async (productId, checked) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(productId);
+      else next.delete(productId);
+      return next;
+    });
+    if (checked) {
+      const { error } = await supabase.from("vendor_selected_products").insert({ vendor_id: myVendorId, product_id: productId });
+      if (error) setError("No se pudo activar: " + error.message);
+    } else {
+      const { error } = await supabase
+        .from("vendor_selected_products")
+        .delete()
+        .eq("vendor_id", myVendorId)
+        .eq("product_id", productId);
+      if (error) setError("No se pudo desactivar: " + error.message);
+    }
+  };
+
+  if (loading) return <p>Cargando…</p>;
+
+  return (
+    <div>
+      {error && <p className="admin-error">{error}</p>}
+      <p className="admin-hint">
+        Estos son los productos generales de la empresa. Marca los que quieras mostrar también en tu propia tienda
+        (se ven con la misma foto, precio y descripción que la tienda principal).
+      </p>
+      <div className="admin-list">
+        {general.map((row) => (
+          <div className="admin-row" key={row.id}>
+            <div className="admin-row-thumb" style={row.image_url ? { backgroundImage: `url(${row.image_url})` } : {}} />
+            <div className="admin-row-info">
+              <b>{row.name}</b>
+              <span>
+                {money(row.price)} · {row.category || "General"}
+              </span>
+            </div>
+            <label className="admin-checkbox-row" style={{ marginTop: 0 }}>
+              <input
+                type="checkbox"
+                checked={selectedIds.has(row.id)}
+                onChange={(e) => toggle(row.id, e.target.checked)}
+              />
+              Mostrar en mi tienda
+            </label>
+          </div>
+        ))}
+        {general.length === 0 && <p className="admin-empty">Todavía no hay productos generales disponibles.</p>}
+      </div>
+    </div>
+  );
+}
+
 export default function ProductsTab({ isOwner, myVendorId, vendorsList }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +106,7 @@ export default function ProductsTab({ isOwner, myVendorId, vendorsList }) {
   const load = async () => {
     setLoading(true);
     let query = supabase.from("products").select("*").order("sort_order");
-    if (!isOwner) query = query.eq("vendor_id", myVendorId);
+    query = isOwner ? query : query.eq("vendor_id", myVendorId);
     const { data, error } = await query;
     if (error) setError(error.message);
     else setItems(data || []);
@@ -127,8 +205,18 @@ export default function ProductsTab({ isOwner, myVendorId, vendorsList }) {
 
   return (
     <div>
+      {!isOwner && (
+        <>
+          <div className="admin-section-head">
+            <h2 className="disp">Productos de la tienda principal</h2>
+          </div>
+          <GeneralProductsPicker myVendorId={myVendorId} />
+          <hr style={{ border: "none", borderTop: "1px solid var(--line)", margin: "28px 0" }} />
+        </>
+      )}
+
       <div className="admin-section-head">
-        <h2 className="disp">{isOwner ? "Productos" : "Mis productos"}</h2>
+        <h2 className="disp">{isOwner ? "Productos" : "Mis productos propios"}</h2>
         <button className="btn btn-primary admin-btn-inline" onClick={startNew}>
           + Nuevo producto
         </button>
@@ -179,7 +267,13 @@ export default function ProductsTab({ isOwner, myVendorId, vendorsList }) {
               </div>
             ))}
             {filtered.length === 0 && (
-              <p className="admin-empty">{search ? "No hay productos que coincidan con tu búsqueda." : "Todavía no hay productos."}</p>
+              <p className="admin-empty">
+                {search
+                  ? "No hay productos que coincidan con tu búsqueda."
+                  : isOwner
+                  ? "Todavía no hay productos."
+                  : "Todavía no has creado productos propios (esto no incluye los generales que elijas arriba)."}
+              </p>
             )}
           </div>
 

@@ -107,7 +107,7 @@ export default function AdminApp() {
           Panel administrativo · Cali Carnes{!isOwner && myVendorRow ? ` — ${myVendorRow.name}` : ""}
         </span>
         <div className="admin-topbar-right">
-          <a href="./" target="_blank" rel="noreferrer">
+          <a href={!isOwner && myVendorRow ? `./?vendedor=${myVendorRow.slug}` : "./"} target="_blank" rel="noreferrer">
             Ver tienda ↗
           </a>
           <button onClick={() => supabase.auth.signOut()}>Cerrar sesión</button>
